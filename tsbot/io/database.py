@@ -4,7 +4,7 @@ import pymysql
 import logging
 
 # local imports
-from tsbot.data.configio import read_config
+from tsbot.io.configio import read_config
 
 # get logger from parent
 logger = logging.getLogger(__name__)
@@ -13,11 +13,11 @@ logger = logging.getLogger(__name__)
 mysql_credentials = read_config()["mysql"]
 
 
-def exec_command(command):
+def exec_query(query):
     """
-    executes the given command on the mysql database which is given in the config file and returns
-    the result of this execution
-    :param command: command which will be executed in the database
+    Executes the given command on the mysql database which is given in the config file and returns
+    the result of this execution.
+    :param query: command which will be executed in the database
     :return: returns the response of the given database
     """
 
@@ -25,10 +25,7 @@ def exec_command(command):
         logger.info("Connecting to database and executing query...")
 
         # establishing connection with the given credentials
-        connection = pymysql.connect(host=mysql_credentials["host"],
-                                     user=mysql_credentials["user"],
-                                     password=mysql_credentials["password"],
-                                     db=mysql_credentials["db"])
+        connection = pymysql.connect(**mysql_credentials)
 
     except Exception as e:
         logger.exception("A connection to the mysql database could not be established")
@@ -36,11 +33,12 @@ def exec_command(command):
 
     try:
         with connection.cursor() as cursor:
-            logger.debug("Executed the sql query: [%]".format(command))
+            logger.debug("Executed the sql query: [%]".format(query))
 
             # execute the given command and fetch result
-            cursor.execute(command)
+            cursor.execute(query)
             result = cursor.fetchone()
+            connection.commit()
             return result
 
     except Exception as e:

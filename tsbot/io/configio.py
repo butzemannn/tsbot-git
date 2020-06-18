@@ -2,18 +2,19 @@
 
 import json
 import logging
+import os
 
 # get logger from parent
 logger = logging.getLogger(__name__)
 
-# config file for settings
-config_path = "tsbot.cfg"
+# config file for settings relative to this file
+config_path = os.path.join(os.path.dirname(__file__), "..", "tsbot.cfg")
 
 
 def read_config():
     """
-    reads the config file, which containing different settings, from the previously set path
-    :return: returns config data as dictionary
+    Reads the config file, which containing different settings, from the previously set path.
+    :return: returns config io as dictionary
     """
 
     try:
@@ -27,8 +28,8 @@ def read_config():
 
 def write_config(data):
     """
-    writes the config file from the previously set path with the given data
-    :param data: data which should be stored in config file
+    Writes the config file from the previously set path with the given io.
+    :param data: io which should be stored in config file
     :return: None
     """
     try:
