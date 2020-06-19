@@ -1,23 +1,34 @@
 #!/usr/python
 
-from queue import Queue
-import threading
 import logging
+from threading import Thread
+from queue import Queue
+from ts3.query import TS3TimeoutError
+from time import time
 
-from tsbot.onlinetime.JoinEventHandler import JoinEventHandler
-from tsbot.onlinetime.LeaveEventHandler import LeaveEventHandler
+# local imports
+from tsbot.onlinetime.EventWorker import EventWorker
 from tsbot.io.TsServer import TsServer
 
 
 class EventHandler(object):
+    """
+    Listens on the ts3 server for events and queues joining as well as leaving events for the appropriate
+    sub-handler.
+    """
 
+    # Attributes
     ts = None
-    join_queue = None
-    join_event_handler = None
-    leave_queue = None
-    leave_event_handler = None
+    _sentinel = None
+
+    event_queue = None
+    event_worker = None
+    event_worker_thread = None
 
     def __init__(self):
+        """
+        Constructor which sets up the event_worker and the leave_event_handler
+        """
         # TODO: Configure logger settings (with config options)
         # Configure logging
         log_format = "%(asctime)s::%(levelname)s::%(name)s::" \
@@ -27,23 +38,55 @@ class EventHandler(object):
         self.ts = TsServer()
 
         # Event handler for joining events
-        self.join_queue = Queue()
-        self.join_event_handler = JoinEventHandler(self.join_queue)
+        self.event_queue = Queue()
+        self.event_worker = EventWorker(self.event_queue)
 
-        # Event handler for leaving events
-        self.leave_queue = Queue()
-        self.leave_event_handler = LeaveEventHandler(self.leave_queue)
+        # Threading setup for the other event workers
+        # object to inform threads of program exit
+        self._sentinel = object()
+        self.event_worker_thread = Thread(target=self.event_worker.run, args=(self._sentinel,))
+        self.event_worker_thread.start()
 
-        # TODO: Threads for handlers
+    def handle_events(self):
+        """
+        Creates and listens for ts events. Queues the events for the appropriate sub-handler when detected according
+        to the reasonid
+        :return: None
+        """
 
-    def join_event(self):
-        # TODO
-        pass
+        self.ts.exec_query("servernotifyregister", {"event": "server"})
+        while True:
+            self.ts.keep_alive()
+            try:
+                event = self.ts.wait_for_event(120)
+            except TS3TimeoutError:
+                # when timeout send keep alive and wait again
+                pass
+            else:
+                # add event to queue for worker
+                event[0]['event_time'] = int(time())
+                self.event_queue.put(event)
 
-    def leave_event(self):
-        # TODO
-        pass
-
+    def init_active_clients(self):
+        """
+        Will initialize the active_clients table with the already connected clients on the server
+        :return: None
+        """
     def run(self):
-        # TODO
-        pass
+        """
+        Main run method which will be executed when the online time will be counted
+        :return:
+        """
+        try:
+            self.handle_events()
+
+        finally:
+            # puts sentinel when program is stopped to tell threads to quit
+            self.event_queue.put(self._sentinel)
+
+            # waits for threads to quit
+            self.event_worker_thread.join()
+
+
+
+

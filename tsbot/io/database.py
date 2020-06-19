@@ -1,13 +1,13 @@
 #!/usr/python
 
 import pymysql
-import logging
+from logging import getLogger
 
 # local imports
 from tsbot.io.configio import read_config
 
 # get logger from parent
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 # read database login credentials from config file
 mysql_credentials = read_config()["mysql"]
@@ -29,10 +29,10 @@ def exec_query(query):
 
     except Exception as e:
         logger.exception("A connection to the mysql database could not be established")
-        connection.close()
+        return
 
     try:
-        with connection.cursor() as cursor:
+        with connection.cursor(pymysql.cursors.DictCursor) as cursor:
             logger.debug("Executed the sql query: [%]".format(query))
 
             # execute the given command and fetch result

@@ -1,11 +1,11 @@
 #!/usr/python
 
-import logging
 import ts3
+from logging import getLogger
 
 from tsbot.io.configio import read_config
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 
 class TsServer(object):
@@ -29,7 +29,7 @@ class TsServer(object):
         except Exception as e:
             logger.exception("Connecting to the ts3 server failed!")
 
-    def exec_query(self, query: str, params: dict = None):
+    def exec_query(self, query: str, *options, **params: dict):
         """
         Executes a ts query command with the command 'query' and the parameters 'params'.
         The parameter dictionary keys must be named according to the command syntax found in the ts3 query manual.
@@ -41,11 +41,7 @@ class TsServer(object):
 
         try:
             # execute correct query even when no parameters are needed
-            if params:
-                out = self.ts3conn.exec_(query, **params)
-            else:
-                out = self.ts3conn.exec_(query)
-            # returns query response
+            out = self.ts3conn.exec_(query, *options, **params)
             return out
 
         except Exception as e:
@@ -59,12 +55,21 @@ class TsServer(object):
         """
         self.ts3conn.send_keepalive()
 
+    def wait_for_event(self, timeout: int):
+        """
+        Holds the program and waits for an previously registered event
+        :param timeout: is 0 when no timeout is specified
+        :return: returns the event
+        """
+        return self.ts3conn.wait_for_event(timeout=timeout)
+
     def close_connection(self):
         """
         Closes connection to the ts3 query.
         :return: None
         """
         self.ts3conn.close()
+
 
 
 

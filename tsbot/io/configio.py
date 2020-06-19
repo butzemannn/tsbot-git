@@ -1,11 +1,11 @@
 #!/usr/python
 
 import json
-import logging
 import os
+from logging import getLogger
 
 # get logger from parent
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 # config file for settings relative to this file
 config_path = os.path.join(os.path.dirname(__file__), "..", "tsbot.cfg")
