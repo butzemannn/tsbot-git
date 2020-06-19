@@ -1,10 +1,10 @@
-#!/usr/python
+#!/usr/bin/env python3
 
 import ts3
 from logging import getLogger
 
 # local imports
-from tsbot.io.configio import read_config
+from tsbot.iopackets.configio import read_config
 
 logger = getLogger(__name__)
 

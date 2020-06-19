@@ -1,6 +1,6 @@
 import unittest
 
-from tsbot.io.TsServer import TsServer
+from tsbot.iopackets.TsServer import TsServer
 
 
 class MyTestCase(unittest.TestCase):

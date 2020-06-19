@@ -1,4 +1,4 @@
-#!/usr/python
+#!/usr/bin/env python3
 
 import json
 import os
@@ -15,7 +15,7 @@ def read_config():
     """
     Reads the config file, which containing different settings, from the previously set path.
 
-    :return: returns config io as dictionary
+    :return: returns config iopackets as dictionary
     """
 
     try:
@@ -29,10 +29,10 @@ def read_config():
 
 def write_config(data):
     """
-    Writes the config file from the previously set path with the given io.
+    Writes the config file from the previously set path with the given iopackets.
 
     :param data:
-        io which should be stored in config file
+        iopackets which should be stored in config file
 
     :return: None
     """

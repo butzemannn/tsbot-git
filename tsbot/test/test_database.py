@@ -1,7 +1,7 @@
 import unittest
 
 # import local file
-from tsbot.io.database import exec_query
+from tsbot.iopackets.database import exec_query
 
 
 class MyTestCase(unittest.TestCase):

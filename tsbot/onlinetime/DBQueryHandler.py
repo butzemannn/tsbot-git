@@ -1,7 +1,7 @@
-#!/usr/python
+#!/usr/bin/env python3
 
 # local imports
-from tsbot.io.database import exec_query
+from tsbot.iopackets.database import exec_query
 
 
 class DBQueryHandler(object):

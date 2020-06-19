@@ -1,4 +1,4 @@
-#!/usr/python
+#!/usr/bin/env python3
 
 from sys import exit
 from time import time
@@ -6,7 +6,7 @@ from logging import getLogger
 
 # local imports
 from tsbot.onlinetime.DBQueryHandler import DBQueryHandler as DBHandler
-from tsbot.io.configio import read_config
+from tsbot.iopackets.configio import read_config
 
 # get logger from parent
 logger = getLogger(__name__)

@@ -1,4 +1,4 @@
-#!/usr/python
+#!/usr/bin/env python3
 
 import logging
 from threading import Thread
@@ -7,8 +7,8 @@ from ts3.query import TS3TimeoutError
 from time import time
 
 # local imports
-from tsbot.io.configio import read_config
-from tsbot.io.TsServer import TsServer
+from tsbot.iopackets.configio import read_config
+from tsbot.iopackets.TsServer import TsServer
 from tsbot.onlinetime.DBQueryHandler import DBQueryHandler as DBHandler
 from tsbot.onlinetime.EventWorker import EventWorker
 

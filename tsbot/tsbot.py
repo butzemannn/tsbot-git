@@ -1,4 +1,4 @@
-#!/usr/python
+#!/usr/bin/env python3
 
 import logging
 from tsbot.onlinetime.EventHandler import EventHandler
