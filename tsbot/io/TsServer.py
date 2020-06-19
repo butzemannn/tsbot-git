@@ -3,6 +3,7 @@
 import ts3
 from logging import getLogger
 
+# local imports
 from tsbot.io.configio import read_config
 
 logger = getLogger(__name__)
@@ -25,6 +26,7 @@ class TsServer(object):
             # establishing the connection to the ts server
             self.ts3conn = ts3.query.TS3ServerConnection(URL)
             self.ts3conn.exec_("use", sid=self.ts3_credentials["serverid"])
+            self.ts3conn.exec_("clientupdate", client_nickname="Hauseigener Bot")
 
         except Exception as e:
             logger.exception("Connecting to the ts3 server failed!")
@@ -33,10 +35,18 @@ class TsServer(object):
         """
         Executes a ts query command with the command 'query' and the parameters 'params'.
         The parameter dictionary keys must be named according to the command syntax found in the ts3 query manual.
-        :param query: the query command given as string, e.g. "clientlist" or "clientpoke" according to the query manual
-        :param params: a dictionary with query parameters with dict-keys named according to query manual,
-                       e.g. {sid=1, clid=44, msg="Hello World"}
-        :return: returns the query answer of the server
+
+        :param query:
+            the query command given as string, e.g. "clientlist" or "clientpoke" according to the query manual
+        :param options:
+            all initial options which are added with a '-',
+            e.g. [times, uid, groups]
+        :param params:
+            a dictionary with query parameters with dict-keys named according to query manual,
+            e.g. {sid=1, identifier=44, msg="Hello World"}
+
+        :return:
+            returns the query answer of the server
         """
 
         try:
@@ -51,6 +61,7 @@ class TsServer(object):
     def keep_alive(self):
         """
         Sends keep alive signal so the connection stays active.
+
         :return: None
         """
         self.ts3conn.send_keepalive()
@@ -58,14 +69,19 @@ class TsServer(object):
     def wait_for_event(self, timeout: int):
         """
         Holds the program and waits for an previously registered event
-        :param timeout: is 0 when no timeout is specified
-        :return: returns the event
+
+        :param timeout:
+            is 0 when no timeout is specified
+
+        :return:
+            returns the event
         """
         return self.ts3conn.wait_for_event(timeout=timeout)
 
     def close_connection(self):
         """
         Closes connection to the ts3 query.
+
         :return: None
         """
         self.ts3conn.close()

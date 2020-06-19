@@ -14,6 +14,7 @@ config_path = os.path.join(os.path.dirname(__file__), "..", "tsbot.cfg")
 def read_config():
     """
     Reads the config file, which containing different settings, from the previously set path.
+
     :return: returns config io as dictionary
     """
 
@@ -29,7 +30,10 @@ def read_config():
 def write_config(data):
     """
     Writes the config file from the previously set path with the given io.
-    :param data: io which should be stored in config file
+
+    :param data:
+        io which should be stored in config file
+
     :return: None
     """
     try:

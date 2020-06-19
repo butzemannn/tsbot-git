@@ -5,7 +5,8 @@ from time import time
 from logging import getLogger
 
 # local imports
-from tsbot.io.database import exec_query
+from tsbot.onlinetime.DBQueryHandler import DBQueryHandler as DBHandler
+from tsbot.io.configio import read_config
 
 # get logger from parent
 logger = getLogger(__name__)
@@ -24,74 +25,93 @@ class EventWorker(object):
 
     def join_event(self, event):
         """
-        Accesses database and creates new user from a joining event
-        :param event: the join event the user will be created from
+        Accesses table and creates new user from a joining event
+
+        :param event:
+            the join event the user will be created from
+
         :return: None
         """
-        # TODO: set correct variable types in query and in table
-        query = "INSERT INTO active_clients (client_nickname, client_unique_identifier, client_database_id, clid, join_time) " \
-                "VALUES ('{client_nickname}', '{client_unique_identifier}', {client_database_id}, {clid}, {join_time});".format(**event[0], join_time=event[0]['event_time'])
-        exec_query(query)
+        event[0]['join_time'] = event[0]['event_time']
+        DBHandler.insert_db_entry("active_clients", **event[0])
 
     def leave_event(self, event):
         """
-        Calculates the online time and writes to database
+        Calculates the online time and writes to table
+
         :param event:
+
         :return:
         """
 
         [active_client_data, online_time_data] = self._client_data_from_event(event)
 
+        # check if user is excluded
+        excluded_groups = read_config()['onlinetime']['excluded_server_groups']
+        excluded_user = read_config()['onlinetime']['excluded_client_unique_identifier']
+
+        if active_client_data['client_unique_identifier'] in excluded_user:
+            return
+        for groupid in active_client_data['client_servergroups'].split(","):
+            if groupid in excluded_groups:
+                return
+
         # check if user already exists
         if online_time_data:
             # calculate the current online time
-            online_time_new = online_time_data['online_time'] + (active_client_data['join_time'] - int(time()))
+            online_time_new = online_time_data['online_time'] + (int(time()) - active_client_data['join_time'])
+            online_time_data['online_time'] = online_time_new
+            DBHandler.update_online_time_entry(**online_time_data)
         else:
             # create client when not already in table
-            pass
+            online_time_new = int(time()) - active_client_data['join_time']
+            active_client_data['online_time'] = online_time_new
+            DBHandler.insert_db_entry('online_time', **active_client_data)
 
+        DBHandler.delete_entry_from_clid("active_clients", active_client_data['clid'])
 
-
-    def _client_data_from_event(self, event):
+    @staticmethod
+    def _client_data_from_event(event):
         """
         Fetches the needed client data from active_clients and online_time tables from the given event.
+
         :param event:
+            The ts3 event from which the data will be collected
         :return:
+            Both table entries as dictionarys
         """
 
-        # get client information from table
-        active_client_data_query = "SELECT * FROM 'active_clients' WHERE 'clid' = {clid}".format(**event[0])
-        active_client_data = exec_query(active_client_data_query)
-
-        # Delete client entry
-        exec_query("DELETE FROM active_clients WHERE clid = {clid}".format(**event[0]))
+        # get client information from table and delete entry
+        active_client_data = DBHandler.get_db_entry('active_clients', event[0]['clid'])
+        DBHandler.delete_entry_from_clid('active_clients', event[0])
 
         # long term client data
-        client_data_query = "SELECT * FROM 'online_time' " \
-                            "WHERE 'client_unique_identifier' = {client_unique_identifier}".format(**active_client_data)
-        online_time_data = exec_query(client_data_query)
+        online_time_data = DBHandler.get_db_entry("online_time", active_client_data['client_unique_identifier'])
 
         return active_client_data, online_time_data
 
-
-    def clear_temp_data(self):
+    @staticmethod
+    def clear_temp_data():
         """
         Clears temporary data including the active_clients table
+
         :return: None
         """
 
         # Clears table of active_clients
-        exec_query("TRUNCATE active_clients")
+        DBHandler.clear_table("active_clients")
 
     def run(self, _sentinel: object):
         """
         Main run method which will be executed in the thread.
-        :param _sentinel: object which will be queued when program got stopped
+
+        :param _sentinel:
+            object which will be queued when program got stopped
+
         :return: None
         """
 
         while True:
-
             # wait for new item in queue
             event = self.event_queue.get()
 
@@ -106,11 +126,11 @@ class EventWorker(object):
 
             # id 0: user joined the server
             if reasonid == 0:
-                # add current time to be able to process
                 self.join_event(event)
 
             # id 3: timeout, 5: kick, 6: ban, 8: left, 11: server shutdown
             elif reasonid in [3, 5, 6, 8, 11]:
                 self.leave_event(event)
+                pass
 
 

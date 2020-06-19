@@ -8,7 +8,7 @@ class MyTestCase(unittest.TestCase):
     def test_TsServer():
         ts = TsServer()
         print(ts.exec_query("clientlist", "times")[0])
-        # ts.exec_query("clientpoke", {"clid": "20318", "msg": "Test"})
+        # ts.exec_query("clientpoke", {"identifier": "20318", "msg": "Test"})
         #ts.close_connection()
 
     def test_TsServerEvent(self):

@@ -1,2 +1,4 @@
 tsbot/tsbot.cfg
 .idea/
+*.log
+**/__pychache__
