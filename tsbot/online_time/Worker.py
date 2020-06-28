@@ -5,70 +5,26 @@ from time import time
 from logging import getLogger
 
 # local imports
-from tsbot.onlinetime.DBQueryHandler import DBQueryHandler as DBHandler
-from tsbot.iopackets.configio import read_config
+from tsbot.online_time.DbQuery import DbQuery as DBHandler
+from tsbot.common.ConfigIo import ConfigIo as cio
 
 # get logger from parent
 logger = getLogger(__name__)
 
+# TODO logging
 
 class EventWorker(object):
 
     event_queue = None
+    history_queue = None
 
-    def __init__(self, event_queue):
+    def __init__(self, event_queue, history_queue):
         """
 
         :param event_queue:
         """
         self.event_queue = event_queue
-
-    def join_event(self, event):
-        """
-        Accesses table and creates new user from a joining event
-
-        :param event:
-            the join event the user will be created from
-
-        :return: None
-        """
-        event[0]['join_time'] = event[0]['event_time']
-        DBHandler.insert_db_entry("active_clients", **event[0])
-
-    def leave_event(self, event):
-        """
-        Calculates the online time and writes to table
-
-        :param event:
-
-        :return:
-        """
-
-        [active_client_data, online_time_data] = self._client_data_from_event(event)
-
-        # check if user is excluded
-        excluded_groups = read_config()['onlinetime']['excluded_server_groups']
-        excluded_user = read_config()['onlinetime']['excluded_client_unique_identifier']
-
-        if active_client_data['client_unique_identifier'] in excluded_user:
-            return
-        for groupid in active_client_data['client_servergroups'].split(","):
-            if groupid in excluded_groups:
-                return
-
-        # check if user already exists
-        if online_time_data:
-            # calculate the current online time
-            online_time_new = online_time_data['online_time'] + (int(time()) - active_client_data['join_time'])
-            online_time_data['online_time'] = online_time_new
-            DBHandler.update_online_time_entry(**online_time_data)
-        else:
-            # create client when not already in table
-            online_time_new = int(time()) - active_client_data['join_time']
-            active_client_data['online_time'] = online_time_new
-            DBHandler.insert_db_entry('online_time', **active_client_data)
-
-        DBHandler.delete_entry_from_clid("active_clients", active_client_data['clid'])
+        self.history_queue = history_queue
 
     @staticmethod
     def _client_data_from_event(event):
@@ -101,6 +57,59 @@ class EventWorker(object):
         # Clears table of active_clients
         DBHandler.clear_table("active_clients")
 
+    def join_event(self, event):
+        """
+        Accesses table and creates new user from a joining event
+
+        :param event:
+            the join event the user will be created from
+
+        :return: None
+        """
+        event[0]['join_time'] = event[0]['event_time']
+        DBHandler.insert_db_entry("active_clients", **event[0])
+
+    def leave_event(self, event):
+        """
+        Calculates the online time and writes to table
+
+        :param event:
+
+        :return:
+        """
+
+        [active_client_data, online_time_data] = self._client_data_from_event(event)
+        leave_time = int(time())
+
+        # Setup for History Worker
+        active_client_data['client_leave'] = leave_time
+        self.history_queue.put(active_client_data)
+
+        # check if user is excluded
+        excluded_groups = cio.read_config()['onlinetime']['excluded_server_groups']
+        excluded_user = cio.read_config()['onlinetime']['excluded_client_unique_identifier']
+
+        if active_client_data['client_unique_identifier'] in excluded_user:
+            return
+        for groupid in active_client_data['client_servergroups'].split(","):
+            if groupid in excluded_groups:
+                return
+
+        # check if user already exists
+        if online_time_data:
+            # calculate the current online time
+            online_time_new = online_time_data['online_time'] + (leave_time - active_client_data['join_time'])
+            online_time_data['online_time'] = online_time_new
+            DBHandler.update_online_time_entry(**online_time_data)
+
+        else:
+            # create client when not already in table
+            online_time_new = leave_time - active_client_data['join_time']
+            active_client_data['online_time'] = online_time_new
+            DBHandler.insert_db_entry('online_time', **active_client_data)
+
+        DBHandler.delete_entry_from_clid("active_clients", active_client_data['clid'])
+
     def run(self, _sentinel: object):
         """
         Main run method which will be executed in the thread.
@@ -119,6 +128,7 @@ class EventWorker(object):
             if event is _sentinel:
                 # clear all temp data
                 self.clear_temp_data()
+                self.history_queue.put(_sentinel)
                 exit()
 
             # check if client joined or left the server

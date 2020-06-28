@@ -1,15 +1,23 @@
 #!/usr/bin/env python3
 
-import logging
-from tsbot.onlinetime.EventHandler import EventHandler
+from logging import getLogger
 
 # local imports
+from tsbot.common.Log import Log
+from tsbot.online_time.Events import Events
 
 
 def run_online_time():
-    handler = EventHandler()
+    handler = Events()
     handler.run()
 
 
 def run():
-    run_online_time()
+    # setup logger
+    Log.init_logger()
+    _logger = getLogger("main")
+    _logger.info("Starting tsbot")
+    try:
+        run_online_time()
+    except Exception as e:
+        _logger.exception("An error occured \n")

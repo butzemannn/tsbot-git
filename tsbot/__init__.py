@@ -1,3 +1,3 @@
-import tsbot.iopackets
-import tsbot.onlinetime
-import tsbot.test
+import tsbot.common
+import tsbot.online_time
+import tsbot.tests

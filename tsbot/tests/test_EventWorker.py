@@ -1,10 +1,10 @@
 import unittest
-from tsbot.onlinetime.EventHandler import EventHandler
+from tsbot.online_time.Events import Events
 
 
 class MyTestCase(unittest.TestCase):
     def test_EventWorker(self):
-        handler = EventHandler()
+        handler = Events()
         handler.run()
 
 

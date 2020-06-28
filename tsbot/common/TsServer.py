@@ -4,15 +4,15 @@ import ts3
 from logging import getLogger
 
 # local imports
-from tsbot.iopackets.configio import read_config
+from tsbot.common.ConfigIo import ConfigIo as cio
 
-logger = getLogger(__name__)
+logger = getLogger("main")
 
 
 class TsServer(object):
 
     # reading ts3 credentials from config file
-    ts3_credentials = read_config()["ts3"]
+    ts3_credentials = cio.read_config()["ts3"]
     ts3conn = None
 
     def __init__(self):
@@ -26,7 +26,12 @@ class TsServer(object):
             # establishing the connection to the ts server
             self.ts3conn = ts3.query.TS3ServerConnection(URL)
             self.ts3conn.exec_("use", sid=self.ts3_credentials["serverid"])
-            self.ts3conn.exec_("clientupdate", client_nickname="Hauseigener Bot")
+            try:
+                self.ts3conn.exec_("clientupdate", client_nickname="Hauseigener Bot")
+
+            except ts3.query.TS3QueryError as e:
+                # when username is already taken
+                self.ts3conn.exec_("clientupdate", client_nickname="Bot")
 
         except Exception as e:
             logger.exception("Connecting to the ts3 server failed!")
