@@ -75,10 +75,10 @@ class DbQuery(object):
                     "VALUES ('{client_nickname}', '{client_unique_identifier}', {client_database_id}, '{client_servergroups}', {online_time});".format(table, **data)
 
         elif table == "client_history":
-            query = "INSERT INTO {} (client_nickname, client_description, client_unique_identifier, client_database_id, client_servergroups, " \
-                    "client_created, client_totalconnections, client_country, client_last_ip, join_time, leave_time, online_time)" \
-                    "VALUES ('{client_nickname}', '{client_description}', '{client_unique_identifier}', {client_database_id}, '{client_servergroups}', " \
-                    "{client_created}, {client_totalconnections}, '{client_country}', '{client_last_ip}', {join_time}, {leave_time}, {online_time};".format(table, **data)
+            query = "INSERT INTO {} (client_nickname, client_description, client_unique_identifier, clid, client_database_id, client_servergroups, " \
+                    "client_created, client_totalconnections, client_country, client_lastip, join_time, leave_time, online_time, afk_time) " \
+                    "VALUES ('{client_nickname}', '{client_description}', '{client_unique_identifier}', {clid}, {client_database_id}, '{client_servergroups}', " \
+                    "{client_created}, {client_totalconnections}, '{client_country}', '{client_lastip}', {join_time}, {leave_time}, {online_time}, {afk_time});".format(table, **data)
 
         else:
             logger.error("The specified table is not known: <{}>".format(table))
@@ -98,7 +98,7 @@ class DbQuery(object):
         logger.debug("Updating table online_time: data=<{}>".format(data))
 
         query = "UPDATE online_time " \
-                "SET client_nickname = '{client_nickname}', client_servergroups = '{client_servergroups}', online_time = {online_time} " \
+                "SET client_nickname = '{client_nickname}', client_servergroups = '{client_servergroups}', online_time = {online_time}, client_servergroups = '{client_servergroups}'" \
                 "WHERE client_unique_identifier = '{client_unique_identifier}';".format(**data)
 
         db.exec_query(query)

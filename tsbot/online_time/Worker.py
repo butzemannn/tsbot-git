@@ -88,29 +88,32 @@ class EventWorker(object):
         [active_client_data, online_time_data] = self._client_data_from_event(event)
         leave_time = int(time())
 
-        # Setup for History Worker
-        active_client_data['client_leave'] = leave_time
-        logger.debug("Adding to client to history queue: [{}]".format(str(active_client_data)))
-        self.history_queue.put(active_client_data)
-
         # check if user is excluded
         excluded_groups = cio.read_config()['onlinetime']['excluded_server_groups']
         excluded_user = cio.read_config()['onlinetime']['excluded_client_unique_identifier']
 
         if active_client_data['client_unique_identifier'] in excluded_user:
             logger.debug("Client is excluded user: [{}]".format(active_client_data['client_unique_identifier']))
+            DbQuery.delete_entry_from_clid("active_clients", active_client_data['clid'])
             return
 
         for groupid in active_client_data['client_servergroups'].split(","):
             if groupid in excluded_groups:
                 logger.debug("Client in excluded group: [{}]".format(groupid))
+                DbQuery.delete_entry_from_clid("active_clients", active_client_data['clid'])
                 return
+
+        # Setup for History Worker
+        active_client_data['leave_time'] = leave_time
+        logger.debug("Adding to client to history queue: [{}]".format(str(active_client_data)))
+        self.history_queue.put(active_client_data)
 
         # check if user already exists
         if online_time_data:
             # calculate the current online time
             online_time_new = online_time_data['online_time'] + (leave_time - active_client_data['join_time'])
             online_time_data['online_time'] = online_time_new
+
             logger.debug("Updating user time in existing database entry: [{}]".format(str(online_time_data)))
             DbQuery.update_online_time_entry(**online_time_data)
 
@@ -118,6 +121,7 @@ class EventWorker(object):
             # create client when not already in table
             online_time_new = leave_time - active_client_data['join_time']
             active_client_data['online_time'] = online_time_new
+
             logger.debug("Creating user database entry: [{}]".format(str(online_time_data)))
             DbQuery.insert_db_entry('online_time', **active_client_data)
 

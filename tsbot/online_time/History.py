@@ -5,6 +5,7 @@ from sys import exit
 
 # local imports
 from tsbot.common.TsServer import TsServer
+from tsbot.online_time.DbQuery import DbQuery
 
 logger = getLogger("tsbot.onlinetime")
 
@@ -18,24 +19,28 @@ class History(object):
         self.history_queue = event_queue
 
     def add_history_entry(self, data: dict):
-        pass
+
+        data['online_time'] = data['leave_time'] - data['join_time']
+        DbQuery.insert_db_entry("client_history", **data)
 
     def run(self, _sentinel):
         # TODO description
         self._sentinel = _sentinel
 
         while True:
+            # waiting for event in queue
             data = self.history_queue.get()
 
             if data is self._sentinel:
                 exit()
 
             # has to get some extra information
-            ts = TsServer()
-            db_data = ts.exec_query("clientdbinfo", {"cldbid": data["client_database_id"]})
+            with TsServer() as ts:
+                db_data = ts.exec_query("clientdbinfo", **{"cldbid": data["client_database_id"]})[0]
+
             # create copy for thread safety
             hist_event = dict(data)
-            hist_event.update(db_data)
+            client_history_data = {**hist_event, **db_data}
 
-            self.add_history_entry(data)
+            self.add_history_entry(client_history_data)
 

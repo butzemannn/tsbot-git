@@ -37,12 +37,16 @@ class TsServer(object):
 
             except ts3.query.TS3QueryError as e:
                 # when username is already taken
-                logger.debug("Nickname already taken. Trying different nickname")
-                self.ts3conn.exec_("clientupdate", client_nickname="Bot")
-                logger.debug("Ts connection established. Nickname: Bot")
+                logger.debug("Nickname already taken. Not switching")
 
         except Exception as e:
             logger.exception("Connecting to the ts3 server failed!")
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
 
     def exec_query(self, query: str, *options, **params: dict):
         """
@@ -97,7 +101,7 @@ class TsServer(object):
         logger.debug("Waiting for ts event...")
         return self.ts3conn.wait_for_event(timeout=timeout)
 
-    def close_connection(self):
+    def close(self):
         """
         Closes connection to the ts3 query.
 
@@ -106,6 +110,7 @@ class TsServer(object):
 
         self.ts3conn.close()
         logger.info("Closed the ts connection")
+
 
 
 

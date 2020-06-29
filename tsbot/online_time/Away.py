@@ -19,20 +19,19 @@ class Away(object):
     def log_afk_time(self):
         # TODO description
         # TODO stop condition (_sentinel)
-        while True:
-            ts = TsServer()
+        with TsServer() as ts:
             client_list = ts.exec_query("clientlist", "times")
 
-            for client in client_list:
-                # TODO make afk time configurable in cfg
-                if client_list['client_idle_time'] >= 1800:
-                    try:
-                        DbQuery.update_afk_time()
+        for client in client_list:
+            # TODO make afk time configurable in cfg
+            if client['client_idle_time'] >= 180:
+                try:
+                    DbQuery.update_afk_time(**client)
 
-                    except Exception as e:
-                        pass
-
-            sleep(600)
+                except Exception as e:
+                    pass
 
     def run(self):
-        pass
+        while True:
+            self.log_afk_time()
+            sleep(600)
