@@ -10,40 +10,39 @@ from tsbot.common.ConfigIo import ConfigIo as cio
 
 class Log(object):
 
-    def __init__(self):
-        pass
-
     @staticmethod
     def init_logger():
 
-        # TODO: Configure logger settings (with config options)
         # Configure logging
+        # TODO maybe add log file config as ini file
+        # logging_cfg = cio.read_config()["logging"]
+        logging_level = "DEBUG"
 
-        logger_names = {"tsbot": "tsbot.log", "sql": "sql.log", "ts": "ts.log"}
+        # logging names and file paths
+        sub_logger_names = {"onlinetime": "onlinetime.log", "sql": "sql.log", "ts": "ts.log", "tests": "tests.log"}
 
-        # TODO maybe add log file config
-        logging_cfg = cio.read_config()["logging"]
+        log_format = "%(asctime)s::%(levelname)s::%(filename)s::%(threadName)s::%(funcName)s:: %(message)s"
+        formatter = logging.Formatter(log_format)
 
-        # TODO: different loggers for different components (database, ts, ...)
-        handler = RotatingFileHandler(logging_path, maxBytes=1000000000, backupCount=3)
-        log_format = "%(asctime)s::%(levelname)s::%(name)s::%(filename)s::%(lineno)d::%(message)s"
+        # top level logger setup
+        logging_path = join(dirname(__file__), "..", "logs", "tsbot.log")
+        top_handler = RotatingFileHandler(logging_path, maxBytes=2000000000, backupCount=3)
+        top_handler.setFormatter(formatter)
 
-        # logger = getLogger("main")
-        logger.setLevel(logging_cfg["level"])
+        # different loggers for
+        top_logger = logging.getLogger("tsbot")
+        top_logger.setLevel(logging_level)
+        top_logger.addHandler(top_handler)
 
-        # get log path
+        # settings for different sub logging
         logging_path = {}
-        for key in logger_names:
-            logging_path[key] = join(dirname(__file__), "..", "logs", logger_names[key])
+        for key in sub_logger_names:
+            logging_path[key] = join(dirname(__file__), "..", "logs", sub_logger_names[key])
+            # RotatingFileHandler to split logs
+            handler = RotatingFileHandler(logging_path[key], maxBytes=2000000000, backupCount=3)
+            handler.setFormatter(formatter)
 
-        # RotatingFileHandler to split logs
-
-        #handler = FileHandler(logging_path)
-
-        # use format
-        formatter = Formatter(log_format)
-        handler.setFormatter(formatter)
-
-        logger.addHandler(handler)
-
-
+            # different loggers for
+            logger = logging.getLogger("tsbot.{}".format(key))
+            logger.setLevel(logging_level)
+            logger.addHandler(handler)

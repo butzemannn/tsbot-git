@@ -6,7 +6,7 @@ from logging import getLogger
 # local imports
 from tsbot.common.ConfigIo import ConfigIo as cio
 
-logger = getLogger("main")
+logger = getLogger("tsbot.ts")
 
 
 class TsServer(object):
@@ -19,19 +19,27 @@ class TsServer(object):
         """
         Initializes the ssh connection to the ts3 server.
         """
+        logger.info("Establishing new query connection to the ts server")
 
         # query url setup with ssh as protocol
-        URL = "ssh://{user}:{password}@{host}:{port}".format(**self.ts3_credentials)
+        url = "ssh://{user}:{password}@{host}:{port}".format(**self.ts3_credentials)
+        logger.debug("Connection url: ssh://{user}:***@{host}:{port}".format(**self.ts3_credentials))
+
         try:
             # establishing the connection to the ts server
-            self.ts3conn = ts3.query.TS3ServerConnection(URL)
+            self.ts3conn = ts3.query.TS3ServerConnection(url)
             self.ts3conn.exec_("use", sid=self.ts3_credentials["serverid"])
+            logger.debug("Using sid: {sid}", self.ts3_credentials)
+
             try:
                 self.ts3conn.exec_("clientupdate", client_nickname="Hauseigener Bot")
+                logger.debug("Ts connection established. Nickname: Hauseigener Bot")
 
             except ts3.query.TS3QueryError as e:
                 # when username is already taken
+                logger.debug("Nickname already taken. Trying different nickname")
                 self.ts3conn.exec_("clientupdate", client_nickname="Bot")
+                logger.debug("Ts connection established. Nickname: Bot")
 
         except Exception as e:
             logger.exception("Connecting to the ts3 server failed!")
@@ -54,9 +62,12 @@ class TsServer(object):
             returns the query answer of the server
         """
 
+        logger.debug("Executing query command: " + query + " " + str(options) + " " + str(params))
+
         try:
             # execute correct query even when no parameters are needed
             out = self.ts3conn.exec_(query, *options, **params)
+            logger.debug("Command execution successful: " + str(out))
             return out
 
         except Exception as e:
@@ -69,6 +80,7 @@ class TsServer(object):
 
         :return: None
         """
+        logger.debug("Sending keep alive signal")
         self.ts3conn.send_keepalive()
 
     def wait_for_event(self, timeout: int):
@@ -81,6 +93,8 @@ class TsServer(object):
         :return:
             returns the event
         """
+
+        logger.debug("Waiting for ts event...")
         return self.ts3conn.wait_for_event(timeout=timeout)
 
     def close_connection(self):
@@ -89,7 +103,9 @@ class TsServer(object):
 
         :return: None
         """
+
         self.ts3conn.close()
+        logger.info("Closed the ts connection")
 
 
 

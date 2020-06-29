@@ -5,13 +5,14 @@ from time import time
 from logging import getLogger
 
 # local imports
-from tsbot.online_time.DbQuery import DbQuery as DBHandler
+from tsbot.online_time.DbQuery import DbQuery
 from tsbot.common.ConfigIo import ConfigIo as cio
 
 # get logger from parent
-logger = getLogger(__name__)
+logger = getLogger("tsbot.onlinetime")
 
 # TODO logging
+
 
 class EventWorker(object):
 
@@ -38,12 +39,13 @@ class EventWorker(object):
         """
 
         # get client information from table and delete entry
-        active_client_data = DBHandler.get_db_entry('active_clients', event[0]['clid'])
-        DBHandler.delete_entry_from_clid('active_clients', event[0])
+        logger.debug("Fetching client data from event: " + str(event[0]))
+        active_client_data = DbQuery.get_db_entry('active_clients', event[0]['clid'])
 
         # long term client data
-        online_time_data = DBHandler.get_db_entry("online_time", active_client_data['client_unique_identifier'])
+        online_time_data = DbQuery.get_db_entry("online_time", active_client_data['client_unique_identifier'])
 
+        logger.debug("Returning active_client_data and online_time_data: [{}], \n [{}]".format(str(active_client_data), str(online_time_data)))
         return active_client_data, online_time_data
 
     @staticmethod
@@ -55,7 +57,8 @@ class EventWorker(object):
         """
 
         # Clears table of active_clients
-        DBHandler.clear_table("active_clients")
+        logger.info("Clearing all temp data")
+        DbQuery.clear_table("active_clients")
 
     def join_event(self, event):
         """
@@ -66,8 +69,11 @@ class EventWorker(object):
 
         :return: None
         """
+
+        logger.info("Processing join event")
         event[0]['join_time'] = event[0]['event_time']
-        DBHandler.insert_db_entry("active_clients", **event[0])
+        logger.debug("Inserting joined client into the active_clients_table")
+        DbQuery.insert_db_entry("active_clients", **event[0])
 
     def leave_event(self, event):
         """
@@ -77,12 +83,14 @@ class EventWorker(object):
 
         :return:
         """
-
+        logger.info("Processing leave event")
+        logger.debug("Fetching needed client data for processing")
         [active_client_data, online_time_data] = self._client_data_from_event(event)
         leave_time = int(time())
 
         # Setup for History Worker
         active_client_data['client_leave'] = leave_time
+        logger.debug("Adding to client to history queue: [{}]".format(str(active_client_data)))
         self.history_queue.put(active_client_data)
 
         # check if user is excluded
@@ -90,9 +98,12 @@ class EventWorker(object):
         excluded_user = cio.read_config()['onlinetime']['excluded_client_unique_identifier']
 
         if active_client_data['client_unique_identifier'] in excluded_user:
+            logger.debug("Client is excluded user: [{}]".format(active_client_data['client_unique_identifier']))
             return
+
         for groupid in active_client_data['client_servergroups'].split(","):
             if groupid in excluded_groups:
+                logger.debug("Client in excluded group: [{}]".format(groupid))
                 return
 
         # check if user already exists
@@ -100,15 +111,17 @@ class EventWorker(object):
             # calculate the current online time
             online_time_new = online_time_data['online_time'] + (leave_time - active_client_data['join_time'])
             online_time_data['online_time'] = online_time_new
-            DBHandler.update_online_time_entry(**online_time_data)
+            logger.debug("Updating user time in existing database entry: [{}]".format(str(online_time_data)))
+            DbQuery.update_online_time_entry(**online_time_data)
 
         else:
             # create client when not already in table
             online_time_new = leave_time - active_client_data['join_time']
             active_client_data['online_time'] = online_time_new
-            DBHandler.insert_db_entry('online_time', **active_client_data)
+            logger.debug("Creating user database entry: [{}]".format(str(online_time_data)))
+            DbQuery.insert_db_entry('online_time', **active_client_data)
 
-        DBHandler.delete_entry_from_clid("active_clients", active_client_data['clid'])
+        DbQuery.delete_entry_from_clid("active_clients", active_client_data['clid'])
 
     def run(self, _sentinel: object):
         """
@@ -122,6 +135,7 @@ class EventWorker(object):
 
         while True:
             # wait for new item in queue
+            logger.debug("Waiting for new event in queue")
             event = self.event_queue.get()
 
             # check if thread must be stopped
@@ -129,9 +143,11 @@ class EventWorker(object):
                 # clear all temp data
                 self.clear_temp_data()
                 self.history_queue.put(_sentinel)
+                logger.debug("Event is sentinel. Stopping...")
                 exit()
 
             # check if client joined or left the server
+            logger.debug("Working on new event [{}]".format(str(event[0])))
             reasonid = int(event[0]["reasonid"])
 
             # id 0: user joined the server

@@ -5,7 +5,7 @@ from logging import getLogger
 # local imports
 from tsbot.common.Database import Database as db
 
-logger = getLogger("main")
+logger = getLogger("tsbot.sql")
 
 
 class DbQuery(object):
@@ -124,7 +124,7 @@ class DbQuery(object):
         :return: None
         """
 
-        logger.debug("Deleting user from table: table=<{}>, clid=<{}>".format(table, clid))
+        logger.debug("Deleting user from table: table={}, clid={}".format(table, clid))
         db.exec_query("DELETE FROM {} WHERE clid = {};".format(table, clid))
 
     @staticmethod

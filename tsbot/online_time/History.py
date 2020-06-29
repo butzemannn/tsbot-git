@@ -6,6 +6,8 @@ from sys import exit
 # local imports
 from tsbot.common.TsServer import TsServer
 
+logger = getLogger("tsbot.onlinetime")
+
 
 class History(object):
 

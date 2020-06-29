@@ -7,7 +7,7 @@ from logging import getLogger
 from tsbot.common.ConfigIo import ConfigIo as cio
 
 # get logger from parent
-logger = getLogger("main")
+logger = getLogger("tsbot.sql")
 
 
 class Database(object):
@@ -26,6 +26,7 @@ class Database(object):
 
         try:
             logger.info("Connecting to table and executing query...")
+            logger.debug("Establishing database connection...")
 
             # read table login credentials from config file
             mysql_credentials = cio.read_config()["mysql"]
@@ -33,8 +34,14 @@ class Database(object):
             # establishing connection with the given credentials
             connection = pymysql.connect(**mysql_credentials)
 
+            logger.debug("Database connection established")
+
+        except ConnectionError:
+            logger.exception("Failed to connect to the database")
+            return
+
         except Exception as e:
-            logger.exception("A connection to the mysql table could not be established")
+            logger.exception("A connection to the mysql table could not be established for an unknown reason")
             return
 
         try:
@@ -45,6 +52,8 @@ class Database(object):
                 cursor.execute(query)
                 result = cursor.fetchone()
                 connection.commit()
+
+                logger.debug("Execution successful: " + str(result))
                 return result
 
         except Exception as e:

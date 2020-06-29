@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 
 from time import sleep
+from logging import getLogger
 
 # local imports
 from tsbot.common.TsServer import TsServer
 from tsbot.online_time.DbQuery import DbQuery
+
+logger = getLogger("tsbot.onlinetime")
 
 
 class Away(object):

@@ -2,6 +2,7 @@ import unittest
 
 from tsbot.tsbot import run
 
+
 class MyTestCase(unittest.TestCase):
 
     @staticmethod
